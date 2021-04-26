@@ -19,7 +19,7 @@ logger = spark._jvm.org.apache.log4j.Logger.getLogger(__name__)
 parser = argparse.ArgumentParser(description="BLSSpeller configuration.")
 parser.add_argument("--input", type=str, required=True)
 parser.add_argument("--output", type=str, required=True)
-parser.add_argument("--bindir", type=str, required=True)
+parser.add_argument("--exec", type=str, required=True)
 parser.add_argument("--bls_thresholds", type=str, default="0.15,0.5,0.6,0.7,0.9,0.95")
 parser.add_argument("--alphabet", type=int, default=2)
 parser.add_argument("--degen", type=int, default=2)
@@ -81,7 +81,7 @@ newSchema = StructType(
 )
 
 output = Path(args["output"]).resolve()
-bindir = Path(args["bindir"]).resolve()
+bindir = Path(args["exec"]).resolve()
 output_results = output / "results"
 output_iterated = output / "iterated"
 output_reduction = output / "reduction"
@@ -149,7 +149,7 @@ if not (args["resume"] and output.exists()):
         [
             str(x)
             for x in [
-                bindir / "motifIterator",
+                args['exec'],
                 "-",
                 "$OUTPUT",
                 args["alignment_option"],
@@ -162,7 +162,7 @@ if not (args["resume"] and output.exists()):
         ]
     )
     # atomic mv is needed for Spark streaming
-    script = f"/bin/bash -c 'OUTPUT=`mktemp`.parquet;{cmd} && mv $OUTPUT {str(output_iterated)}'"
+    script = f"/bin/bash -c 'OUTPUT=`mktemp`.parquet; {cmd} && mv $OUTPUT {str(output_iterated)}'"
 
     families.pipe(
         script,
