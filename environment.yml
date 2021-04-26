@@ -1,5 +1,5 @@
 name: pyspark_blsspeller
-environments:
+channels:
   - conda-forge
   - defaults
 dependencies:
