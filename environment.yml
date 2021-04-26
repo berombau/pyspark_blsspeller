@@ -1,0 +1,8 @@
+name: pyspark_blsspeller
+environments:
+  - conda-forge
+  - defaults
+dependencies:
+  - python>=3.9
+  - pyspark>=3.1
+  - pyarrow
