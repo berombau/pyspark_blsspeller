@@ -6,5 +6,5 @@ time spark-submit \
 --input ../input_analysis/subset \
 --output test_output \
 --bindir ../suffixtree-motif-speller/motifIterator/build_parquet \
---streaming --limit 1 \
+--limit 1 \
 |& tee output.log
