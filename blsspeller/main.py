@@ -179,7 +179,11 @@ if not (args["resume"] and output.exists()):
     ])
 
     env_variables_names = ["LD_LIBRARY_PATH"]
-    env_variables = {x: os.environ[x] for x in env_variables_names}
+    env_variables = dict()
+    for k in env_variables_names:
+        v = os.getenv(k)
+        if v:
+            env_variables[k] = v
     logger.info(f"env_variables: {env_variables}")
 
     families.pipe(
