@@ -4,9 +4,10 @@ from math import factorial
 import argparse
 from pathlib import Path
 import shutil
+import os
 
-import pandas as pd
-import numpy as np
+# import pandas as pd
+# import numpy as np
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 from pyspark.sql.functions import col, lit
@@ -81,8 +82,7 @@ newSchema = StructType(
 )
 
 output = Path(args["output"]).resolve()
-bindir = Path(args["exec"]).resolve()
-output_results = output / "results"
+exec = Path(args["exec"]).resolve()
 output_iterated = output / "iterated"
 output_reduction = output / "reduction"
 
@@ -106,10 +106,11 @@ if not (args["resume"] and output.exists()):
     output.mkdir()
 
     output_iterated.mkdir()
-    output_results.mkdir()
 
 if output_reduction.exists():
     shutil.rmtree(output_reduction)
+
+output_reduction.mkdir()
 
 def write_df(df):
     (df.repartition(1)
@@ -149,7 +150,7 @@ if not (args["resume"] and output.exists()):
         [
             str(x)
             for x in [
-                args['exec'],
+                exec,
                 "-",
                 "$OUTPUT",
                 args["alignment_option"],
@@ -162,11 +163,21 @@ if not (args["resume"] and output.exists()):
         ]
     )
     # atomic mv is needed for Spark streaming
-    script = f"/bin/bash -c 'OUTPUT=`mktemp`.parquet; {cmd} && mv $OUTPUT {str(output_iterated)}'"
+    script = " ".join([
+        "/bin/bash -c '",
+        r"OUTPUT=`mktemp`.parquet;",
+        # r"'eval $(/usr/share/lmod/lmod/libexec/lmod load Arrow/0.17.1-fosscuda-2020b) && eval $(${LMOD_SETTARG_CMD:-:}) && \ ",
+        f"{cmd} && mv $OUTPUT {str(output_iterated)}'",
+    ])
+
+    env_variables_names = ["LD_LIBRARY_PATH"]
+    env_variables = {x: os.environ[x] for x in env_variables_names}
+    logger.info(f"env_variables: {env_variables}")
 
     families.pipe(
         script,
         checkCode=True,
+        env=env_variables
         # block until all families are iterated and moved to next folder
     ).collect()
 
@@ -174,7 +185,7 @@ if args["streaming"]:
     stream.processAllAvailable()  # blocks until all Parquets files are reduced
     stream.stop()  # stop stream
     logger.info("Finished reducing motifs with Spark Streaming")
-    df = spark.read.parquet(str(output_reduction))
+    df = spark.read.schema(newSchema).parquet(str(output_reduction))
 else:
     logger.info("Reducing motifs")
     df = (
@@ -263,6 +274,9 @@ df = df.withColumn(
 )
 
 df = df.filter((~(col("group") == col("group_sc"))) | (col("motif") <= col("motif_rc")))
+
+output_results = output / "results"
+output_results.mkdir()
 
 # writes partitions to folder as parquet files
 (
