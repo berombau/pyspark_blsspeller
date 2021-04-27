@@ -51,6 +51,14 @@ parser.add_argument(
     help="Reduce motifs as soon as a process is finished iterating",
 )
 parser.add_argument(
+    "--reduce_only",
+    type=bool,
+    nargs="?",
+    const=True,
+    default=False,
+    help="Stop when all motifs are counted up, resulting in a single compact Parquet file. Handy when HPC does not support newer version of Arrow.",
+)
+parser.add_argument(
     "--keep_tmps",
     type=bool,
     nargs="?",
@@ -200,6 +208,12 @@ else:
 
 if not args['keep_tmps'] and output_iterated.exists():
     shutil.rmtree(output_iterated)
+
+if args['reduce_only']:
+    logger.info("Stopping because reduce_only mode.")
+    spark.stop()
+    import sys
+    sys.exit()
 
 bg_columns = [f"bg_{c}" for c in blsvector_columns]
 conf_columns = [f"conf_{c}" for c in blsvector_columns]

@@ -6,5 +6,5 @@ time spark-submit \
 --input /scratch/gent/vo/000/gvo00024/vsc40486/bls/input/wheat_100 \
 --output test_output \
 --exec /scratch/gent/vo/000/gvo00024/vsc40486/bls/bin/motifIteratorParquet \
---limit 1 \
+--limit 5 --reduce_only \
 |& tee output.log
