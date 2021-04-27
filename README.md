@@ -34,7 +34,7 @@ optional arguments:
 ## Local
 
 ```bash
-conda env update -f environment.yaml
+conda env update -f environment.yml
 conda activate pyspark_blsspeller
 python setup.py bdist_wheel --universal
 bash example_spark-submit.sh
@@ -42,9 +42,42 @@ bash example_spark-submit.sh
 
 ## HPC
 
+Note that first usage of conda requires `conda init bash`.
+
 ```bash
 module swap cluster/swalot
-module load setuptools
+module load Miniconda3/4.9.2
+conda env update -f environment.yml
+conda activate pyspark_blsspeller
+python setup.py bdist_wheel --universal
+```
+
+### Compile motifIterator
+
+TODO
+
+```bash
+module load intel/2019b gtest/1.10.0-GCCcore-8.3.0 Arrow/0.17.1-fosscuda-2020b
+# change to build dir in motifIterator
+cmake ..
+make -j0
+```
+
+### Test on login node
+
+The Spark module will also load an Arrow module, which will change LD_LIBRARY_PATH.
+The pyspark code expects this variable in the environment.
+
+```bash
+module load Spark/3.1.1-fosscuda-2020b
+bash hpc_example_spark-submit.sh
+```
+
+### Execute on cluster nodes
+
+Note that `hod` can only run with Python 2, so remove the Python 3 of conda with `conda deactivate`.
+
+```bash
 module load hod
-bash example_spark-submit.sh
+hod batch -n 1 --info --label pyspark_test_1 --workdir . --hodconf hod.conf --script hpc_example_spark-submit.sh -l 1 -m e
 ```
