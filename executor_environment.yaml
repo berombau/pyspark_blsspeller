@@ -1,9 +1,9 @@
-name: pyspark_blsspeller
+name: executor_pyspark_blsspeller
 channels:
   - conda-forge
   - defaults
 dependencies:
   - python>=3.8
-  - pyspark>=3.1
   - pyarrow>=3.0.0
-  - conda-pack
+  - pandas>=1
+  - numpy>=1
