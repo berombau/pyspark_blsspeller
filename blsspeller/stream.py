@@ -5,7 +5,8 @@ def start_stream(spark, args, schema_iterated, output_iterated, output_reduction
         # This means the input files of the final batch will remain in the folder.
         .option("cleanSource", "OFF" if args["keep_tmps"] else "DELETE")
         .parquet(str(output_iterated))
-        .groupby("group", "motif")
+        # .groupby("group", "motif")
+        .groupby("motif")
         .agg(*exprs)  # keeps checkpoints of aggregation​
     )
     stream = (

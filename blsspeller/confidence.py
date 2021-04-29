@@ -19,12 +19,12 @@ def get_calc_background_function(n_thresholds, bg_columns):
         half = (max_motifs + 1) / 2
         found_motifs = len(pdf)
         if max_motifs == 1:
-            arr = pdf.iloc[0, 2:]
+            arr = pdf.loc[0, ~pdf.columns.isin(['group', 'motif'])]
         elif found_motifs < half:
             arr = np.zeros(n_thresholds)
         else:
             arr = np.quantile(
-                pdf.iloc[:, 2:], 1 - half / found_motifs, axis=0, interpolation="lower"
+                pdf.loc[:, ~pdf.columns.isin(['group', 'motif'])], 1 - half / found_motifs, axis=0, interpolation="lower"
             )
         series = pd.Series(arr, index=bg_columns)
         df = pd.DataFrame([series])

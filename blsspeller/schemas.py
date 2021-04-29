@@ -4,7 +4,7 @@ from pyspark.sql.types import *
 def get_schema_iterated(blsvector_columns):
     return StructType(
         [
-            StructField("group", StringType(), False),
+            # StructField("group", StringType(), False),
             StructField("motif", StringType(), False),
         ]
         + [StructField(c, IntegerType(), False) for c in blsvector_columns]
@@ -14,7 +14,7 @@ def get_schema_iterated(blsvector_columns):
 def get_schema_reduced(fc_columns):
     return StructType(
         [
-            StructField("group", StringType(), False),
+            # StructField("group", StringType(), False),
             StructField("motif", StringType(), False),
         ]
         + [StructField(c, LongType(), False) for c in fc_columns]

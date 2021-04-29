@@ -32,46 +32,41 @@ schema_bg = get_schema_bg(bg_columns)
 
 exprs = [F.sum(c).alias(c_alias) for c, c_alias in zip(blsvector_columns, fc_columns)]
 
-if not (args["resume"] and output.exists()):
+if not (args["resume"]):
     if output.exists():
         shutil.rmtree(output)
     output.mkdir()
-
     output_iterated.mkdir()
+    output_reduction.mkdir()
 
-if output_reduction.exists():
-    shutil.rmtree(output_reduction)
+    if args["streaming"]:
+        logger.info("Reducing motifs with Spark Streaming")
+        stream = start_stream(
+            spark,
+            args,
+            schema_iterated=schema_iterated,
+            output_iterated=output_iterated,
+            output_reduction=output_reduction,
+            exprs=exprs,
+        )
 
-output_reduction.mkdir()
-
-if args["streaming"]:
-    logger.info("Reducing motifs with Spark Streaming")
-    stream = start_stream(
-        spark,
-        args,
-        schema_iterated=schema_iterated,
-        output_iterated=output_iterated,
-        output_reduction=output_reduction,
-        exprs=exprs,
-    )
-
-if not (args["resume"] and output.exists()):
     iterate_motifs(spark, args, output_iterated)
 
-if args["streaming"]:
-    stop_stream(stream)
-    logger.info("Finished reducing motifs with Spark Streaming")
-else:
-    logger.info("Reducing motifs")
-    df = (
-        spark.read.option("mergeSchema", "true")
-        .schema(schema_iterated)
-        .parquet(str(output_iterated))
-    )
-    # TODO make group optional
-    df = df.groupby("group", "motif").agg(*exprs)
-    df.repartition(1).write.mode("overwrite").parquet(str(output_reduction))
-    logger.info("Finished reducing motifs")
+    if args["streaming"]:
+        stop_stream(stream)
+        logger.info("Finished reducing motifs with Spark Streaming")
+    else:
+        logger.info("Reducing motifs")
+        df = (
+            spark.read.option("mergeSchema", "true")
+            .schema(schema_iterated)
+            .parquet(str(output_iterated))
+        )
+        # TODO make group optional
+        # df = df.groupby("group", "motif").agg(*exprs)
+        df = df.groupby("motif").agg(*exprs)
+        df.repartition(1).write.mode("overwrite").parquet(str(output_reduction))
+        logger.info("Finished reducing motifs")
 
 
 if args["reduce_only"]:
@@ -79,6 +74,17 @@ if args["reduce_only"]:
 else:
     schema_reduced = get_schema_reduced(fc_columns)
     df = spark.read.schema(schema_reduced).parquet(str(output_reduction))
+
+    df = df.withColumn("group", F.concat_ws(
+            "",
+            F.sort_array(
+                F.split(F.col("motif"), "")
+            ),
+        )
+    )
+
+    print(df.show())
+
     # only import these now, so previous steps are not dependent on these.
     from blsspeller.confidence import get_confidence_score
 
@@ -92,6 +98,8 @@ else:
         conf_columns=conf_columns,
     )
 
+    if output_results.exists():
+        shutil.rmtree(output_results)
     output_results.mkdir()
 
     # writes partitions to folder as parquet files
