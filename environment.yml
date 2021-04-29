@@ -4,6 +4,14 @@ channels:
   - defaults
 dependencies:
   - python>=3.8
+  # for pyspark
   - pyspark>=3.1
   - pyarrow>=3.0.0
+  - pandas
+  - numpy
+  # for making sharable conda envs for executors/YARN
   - conda-pack
+  # for compiling motifIterator
+  - gtest
+  - libgcc
+  - gxx_linux-64 
