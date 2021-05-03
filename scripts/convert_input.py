@@ -4,6 +4,7 @@ import argparse
 import sys
 import logging
 import sys
+from collections import defaultdict
 
 parser = argparse.ArgumentParser(
     description="Convert BLSpeller input files, changing Newick tree format from gene-centric to species-centric. Defaults to stdin and stdout."
@@ -40,32 +41,39 @@ def convert_tree(tree, genes):
     tree = pattern.sub(r"\1", tree)
     return tree
 
+def new_genes_format(genes):
+    genes_by_species = defaultdict(lambda: ([], []))
+    for gene_id, species_id, sequence in genes:
+        ids, seqs = genes_by_species[species_id]
+        ids.append(gene_id)
+        seqs.append(sequence)
+    return [
+        f"{' '.join(ids)}\t{species_id}\n{' '.join(seqs)}"
+        for species_id, (ids, seqs) in genes_by_species.items()
+    ]
 
 def act_on_input(f, o):
     family_id = f.readline().rstrip("\n")
     while family_id:
         logging.info(family_id)
-        count = 0
         tree = f.readline().rstrip("\n")
         num_genes = int(f.readline().rstrip("\n"))
         genes = []
+        species = set()
         for _ in range(num_genes):
             gene_id, species_id = f.readline().rstrip("\n").split()
             sequence = f.readline().rstrip("\n")
-            count += 1
+            species.add(species_id)
             genes.append((gene_id, species_id, sequence))
-        logging.info(count)
+        logging.info(species)
         o.writelines(
             "\n".join(
                 [
                     family_id,
                     convert_tree(tree, genes),
-                    str(num_genes),
+                    str(len(species)),
                 ]
-                + [
-                    f"{gene_id}\t{species_id}\n{sequence}"
-                    for gene_id, species_id, sequence in genes
-                ]
+                + new_genes_format(genes)
             ) + "\n"
         )
         family_id = f.readline().rstrip("\n")
