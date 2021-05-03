@@ -2,6 +2,8 @@ from pathlib import Path
 import re
 import argparse
 import sys
+import logging
+import sys
 
 parser = argparse.ArgumentParser(
     description="Convert BLSpeller input files, changing Newick tree format from gene-centric to species-centric. Defaults to stdin and stdout."
@@ -10,8 +12,17 @@ parser.add_argument("-i", "--input", type=str, help="Input directory with files.
 parser.add_argument(
     "-o", "--output", type=str, help="Output directory to be created/overwritten."
 )
+parser.add_argument(
+    "-v", "--verbose", action='store_true', help="Set logging level to DEBUG."
+)
 args = parser.parse_args()
 
+if args.verbose:
+    level=logging.DEBUG
+else:
+    level=logging.WARNING
+
+logging.basicConfig(stream=sys.stderr, level=level)
 
 def convert_tree(tree, genes):
     """
@@ -33,7 +44,7 @@ def convert_tree(tree, genes):
 def act_on_input(f, o):
     family_id = f.readline().rstrip("\n")
     while family_id:
-        print(family_id)
+        logging.info(family_id)
         count = 0
         tree = f.readline().rstrip("\n")
         num_genes = int(f.readline().rstrip("\n"))
@@ -43,7 +54,7 @@ def act_on_input(f, o):
             sequence = f.readline().rstrip("\n")
             count += 1
             genes.append((gene_id, species_id, sequence))
-        print(count)
+        logging.info(count)
         o.writelines(
             "\n".join(
                 [
@@ -55,11 +66,9 @@ def act_on_input(f, o):
                     f"{gene_id}\t{species_id}\n{sequence}"
                     for gene_id, species_id, sequence in genes
                 ]
-            )
+            ) + "\n"
         )
-        o.write("\n")
         family_id = f.readline().rstrip("\n")
-
 
 if not args.input or args.input == "-":
     # only 1 input, via std channels
@@ -79,9 +88,7 @@ for file in Path(args.input).iterdir():
             output_path = output / file.name
             output_path.touch()
             with output_path.open(mode="w") as o:
-                act_on_input(
-                    f,
-                )
+                act_on_input(f, o)
 
     except Exception as e:
-        print(f"Failed for file {file.name}. Caused by {e}")
+        logging.error(f"Failed for file {file.name}. Caused by {e}")
