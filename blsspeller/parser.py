@@ -11,6 +11,13 @@ parser.add_argument("--min_len", type=int, default=8)
 parser.add_argument("--max_len", type=int, default=9)
 parser.add_argument("--conf_cutoff", type=float, default=0.5)
 parser.add_argument("--fc_cutoff", type=int, default=1)
+parser.add_argument("--counted", action="store_true", default=False)
+parser.add_argument(
+    "--partitions",
+    type=int,
+    default=None,
+    help="Partitions of all input files. Should be equal to number of parallel iterations (= cores_per_executor * executors). Defaults to spark.sparkContext.defaultParallelism - 1.",
+)
 parser.add_argument(
     "--limit",
     type=int,
