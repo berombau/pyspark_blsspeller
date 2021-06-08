@@ -38,7 +38,7 @@ def iterate_motifs(spark, args, output_iterated):
     if not partitions:
         # local driver process uses 1 core 
         partitions = spark.sparkContext.defaultParallelism - 1
-    if limit < partitions:
+    if limit and limit < partitions:
         partitions = limit
     families = families.repartition(partitions)
 
